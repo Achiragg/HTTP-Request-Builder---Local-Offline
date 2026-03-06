@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HTTP Request Builder</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --accent: #0077cc;
+      --accent2: #ff6b35;
+      --text: #1a202c;
+      --muted: #718096;
+      --success: #00a876;
+      --code-bg: #f0f4f8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      padding: 2rem;
+      background-image: radial-gradient(ellipse at 10% 10%, rgba(0,119,204,0.06) 0%, transparent 50%),
+                        radial-gradient(ellipse at 90% 90%, rgba(255,107,53,0.05) 0%, transparent 50%);
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+    }
+
+    .logo-badge {
+      background: var(--accent);
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 0.7rem;
+      padding: 4px 8px;
+      letter-spacing: 2px;
+    }
+
+    header h1 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    header h1 span { color: var(--accent); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.85rem 1.2rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.02);
+    }
+
+    .panel-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .panel-title span { color: var(--accent); }
+
+    .dot-row { display: flex; gap: 5px; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; }
+    .dot.r { background: #ff5f57; }
+    .dot.y { background: #febc2e; }
+    .dot.g { background: #28c840; }
+
+    textarea {
+      width: 100%;
+      height: 480px;
+      background: var(--code-bg);
+      color: #0550ae;
+      border: none;
+      outline: none;
+      resize: vertical;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      padding: 1.2rem;
+      tab-size: 2;
+    }
+
+    textarea::placeholder { color: var(--muted); }
+
+    .output-box {
+      background: var(--code-bg);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      padding: 1.2rem;
+      min-height: 480px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      overflow-y: auto;
+    }
+
+    .output-box .method   { color: #b5006e; font-weight: 700; }
+    .output-box .path     { color: #1a7a3c; }
+    .output-box .version  { color: var(--muted); }
+    .output-box .hkey     { color: #0550ae; }
+    .output-box .hval     { color: #953800; }
+    .output-box .body     { color: #1a7a3c; }
+    .output-box .sep      { color: var(--border); }
+    .output-box .comment  { color: var(--muted); font-style: italic; }
+
+    .btn-row {
+      display: flex;
+      gap: 0.75rem;
+      padding: 1rem 1.2rem;
+      border-top: 1px solid var(--border);
+      background: rgba(0,0,0,0.02);
+      flex-wrap: wrap;
+    }
+
+    button {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border: none;
+      cursor: pointer;
+      padding: 0.6rem 1.2rem;
+      border-radius: 2px;
+      transition: all 0.15s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: #005fa3; transform: translateY(-1px); }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { color: var(--text); border-color: var(--muted); }
+
+    .btn-copy {
+      background: transparent;
+      color: var(--accent2);
+      border: 1px solid var(--accent2);
+      margin-left: auto;
+    }
+    .btn-copy:hover { background: var(--accent2); color: #000; }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.02);
+    }
+
+    .tab {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 0.7rem 1.2rem;
+      cursor: pointer;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+      background: none;
+      border-radius: 0;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
+
+    .tab.active {
+      color: var(--accent);
+      border-bottom: 2px solid var(--accent);
+    }
+    .tab:hover { color: var(--text); }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1.2rem;
+      border-top: 1px solid var(--border);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+    .status-dot.err { background: #f87171; }
+
+    .error-msg {
+      color: #f87171;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      padding: 1.2rem;
+    }
+
+    .curl-box {
+      background: var(--code-bg);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      padding: 1.2rem;
+      min-height: 480px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      overflow-y: auto;
+      color: #1a202c;
+    }
+
+    .curl-box .flag   { color: #b5006e; }
+    .curl-box .url    { color: #1a7a3c; }
+    .curl-box .hdr    { color: #953800; }
+    .curl-box .cmd    { color: #0077cc; font-weight: 700; }
+    .curl-box .dat    { color: #1a7a3c; }
+
+    .notice {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      padding: 0 1.2rem 0.8rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-badge">HTTP</div>
+  <h1>Request <span>Builder</span></h1>
+</header>
+
+<div class="grid">
+  <!-- INPUT PANEL -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title"><span>//</span> JSON CONFIG INPUT</div>
+      <div class="dot-row"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+    </div>
+    <textarea id="jsonInput" spellcheck="false" placeholder='Paste your JSON config here...
+{
+  "host": "...",
+  "path": "/...",
+  "method": "POST",
+  "query": {},
+  "requestHeaders": {},
+  "requestBody": {}
+}'></textarea>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="convert()">▶ CONVERT</button>
+      <button class="btn-secondary" onclick="loadSample()">LOAD SAMPLE</button>
+      <button class="btn-secondary" onclick="clearAll()">CLEAR</button>
+    </div>
+    <div id="statusBar" class="status-bar">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusMsg">Ready</span>
+    </div>
+  </div>
+
+  <!-- OUTPUT PANEL -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title"><span>//</span> HTTP OUTPUT</div>
+      <div class="dot-row"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('raw', this)">RAW HTTP</button>
+      <button class="tab" onclick="switchTab('curl', this)">cURL</button>
+    </div>
+
+    <div id="tab-raw" class="tab-content active">
+      <div class="output-box" id="rawOutput"><span class="comment">// Output will appear here after conversion...</span></div>
+    </div>
+    <div id="tab-curl" class="tab-content">
+      <div class="curl-box" id="curlOutput"><span style="color:var(--muted); font-style:italic">// cURL command will appear here...</span></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-copy" onclick="copyOutput()">⎘ COPY</button>
+    </div>
+    <div class="notice">Note: Requests run locally in browser. CORS restrictions may apply for cross-origin calls.</div>
+  </div>
+</div>
+
+<script>
+const SAMPLE = {
+  "host": "api.example.com",
+  "path": "/v1/users/profile",
+  "method": "POST",
+  "query": {
+    "client": "web",
+    "version": "1.0.0"
+  },
+  "requestHeaders": {
+    "host": "api.example.com",
+    "connection": "keep-alive",
+    "content-type": "application/json",
+    "accept": "application/json, text/plain, */*",
+    "user-agent": "my-app/1.0.0",
+    "x-request-id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    "authorization": "Bearer <your-token-here>"
+  },
+  "requestBody": {
+    "name": "John Doe",
+    "email": "john@example.com"
+  }
+};
+
+function loadSample() {
+  document.getElementById('jsonInput').value = JSON.stringify(SAMPLE, null, 2);
+  setStatus('Sample loaded', false);
+}
+
+function clearAll() {
+  document.getElementById('jsonInput').value = '';
+  document.getElementById('rawOutput').innerHTML = '<span class="comment">// Output will appear here after conversion...</span>';
+  document.getElementById('curlOutput').innerHTML = '<span style="color:var(--muted); font-style:italic">// cURL command will appear here...</span>';
+  setStatus('Ready', false);
+}
+
+function setStatus(msg, isError) {
+  document.getElementById('statusMsg').textContent = msg;
+  document.getElementById('statusDot').className = 'status-dot' + (isError ? ' err' : '');
+}
+
+function buildQueryString(query) {
+  if (!query || !Object.keys(query).length) return '';
+  return '?' + Object.entries(query).map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
+}
+
+function sanitizeVal(str) {
+  // Collapse any embedded newlines/carriage returns in header values to a space
+  return String(str).replace(/\r?\n/g, ' ').trim();
+}
+
+function escHtml(str) {
+  // HTML-encode special chars — does NOT strip newlines (structural \n preserved)
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function convert() {
+  const raw = document.getElementById('jsonInput').value.trim();
+  if (!raw) { setStatus('No input provided', true); return; }
+
+  let cfg;
+  try { cfg = JSON.parse(raw); } catch(e) {
+    document.getElementById('rawOutput').innerHTML = `<span class="error-msg">✗ Invalid JSON: ${e.message}</span>`;
+    setStatus('JSON parse error', true);
+    return;
+  }
+
+  const method   = (cfg.method || 'GET').toUpperCase();
+  const path     = cfg.path || '/';
+  const qs       = buildQueryString(cfg.query);
+  const headers  = cfg.requestHeaders || {};
+  const body     = cfg.requestBody ? JSON.stringify(cfg.requestBody) : null;
+  const fullPath = path + qs;
+  const host     = cfg.host || headers['host'] || '';
+
+  // ---- RAW HTTP ----
+  // Build as plain text first, then HTML-encode and wrap spans
+  const skipKeys = ['host', 'content-length'];
+  let rawHtml = '';
+
+  // Request line
+  rawHtml += `<span class="method">${escHtml(method)}</span> <span class="path">${escHtml(fullPath)}</span> <span class="version">HTTP/1.1</span>\n`;
+
+  // Host header (always first)
+  rawHtml += `<span class="hkey">Host</span>: <span class="hval">${escHtml(sanitizeVal(host))}</span>\n`;
+
+  // Remaining headers
+  Object.entries(headers).forEach(([k, v]) => {
+    if (skipKeys.includes(k.toLowerCase())) return;
+    rawHtml += `<span class="hkey">${escHtml(k)}</span>: <span class="hval">${escHtml(sanitizeVal(v))}</span>\n`;
+  });
+
+  // Content-Length (recalculated)
+  if (body) {
+    const len = new TextEncoder().encode(body).length;
+    rawHtml += `<span class="hkey">Content-Length</span>: <span class="hval">${len}</span>\n`;
+  }
+
+  // Blank separator line between headers and body
+  rawHtml += '\n';
+
+  // Body
+  if (body) {
+    rawHtml += `<span class="body">${escHtml(body)}</span>`;
+  }
+
+  document.getElementById('rawOutput').innerHTML = rawHtml;
+
+  // ---- cURL ----
+  const url = `https://${host}${fullPath}`;
+  let curlParts = [];
+  curlParts.push(`<span class="cmd">curl</span> <span class="flag">-X</span> ${escHtml(method)} <span class="url">'${escHtml(url)}'</span>`);
+
+  Object.entries(headers).forEach(([k, v]) => {
+    if (k.toLowerCase() === 'content-length') return;
+    // Use $'...' style — sanitize value, escape single quotes inside
+    const safeV = sanitizeVal(v).replace(/'/g, "'\\''");
+    const safeK = k.replace(/'/g, "'\\''");
+    curlParts.push(`  <span class="flag">-H</span> <span class="hdr">'${escHtml(safeK)}: ${escHtml(safeV)}'</span>`);
+  });
+
+  if (body) {
+    const safeBody = body.replace(/'/g, "'\\''");
+    curlParts.push(`  <span class="flag">-d</span> <span class="dat">'${escHtml(safeBody)}'</span>`);
+  }
+
+  document.getElementById('curlOutput').innerHTML = curlParts.join(' \\\n');
+  setStatus(`Converted — ${Object.keys(headers).length} headers, ${body ? new TextEncoder().encode(body).length + ' bytes body' : 'no body'}`, false);
+}
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function copyOutput() {
+  const activeTab = document.querySelector('.tab-content.active');
+  const text = activeTab.querySelector('[id]').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.btn-copy');
+    const orig = btn.textContent;
+    btn.textContent = '✓ COPIED';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+
+setStatus('Ready', false);
+</script>
+</body>
+</html>
